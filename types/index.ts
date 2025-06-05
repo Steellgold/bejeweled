@@ -31,28 +31,28 @@ export interface Hint {
   to: Position;
 }
 
+export enum BoosterType {
+  HAMMER = 'HAMMER',
+  BOMB = 'BOMB',
+  LASER = 'LASER'
+}
+
 export interface Booster {
+  type: BoosterType;
   name: string;
-  src: string;
+  description: string;
   count: number;
+  requiresSelection: boolean;
 }
 
-export interface BoostersConfig {
-  HAMMER: Booster;
-  BOMB: Booster;
-  LASER: Booster;
+export interface BoostersState {
+  [BoosterType.HAMMER]: Booster;
+  [BoosterType.BOMB]: Booster;
+  [BoosterType.LASER]: Booster;
 }
-
-export enum BoosterTypeEnum {
-  LINE_CLEAR = 'LINE_CLEAR',
-  COLOR_BOMB = 'COLOR_BOMB',
-  SHUFFLE = 'SHUFFLE'
-}
-
-export type BoosterType = keyof BoostersConfig;
 
 export interface JewelCellProps {
-  jewel: number;
+  jewel: number | null;
   row: number;
   col: number;
   isSelected: boolean;
@@ -65,7 +65,6 @@ export interface JewelCellProps {
 }
 
 export interface BoosterButtonProps {
-  type: BoosterType;
   booster: Booster;
   isActive: boolean;
   onClick: () => void;

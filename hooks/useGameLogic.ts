@@ -1,11 +1,10 @@
 import { useState, useCallback } from "react";
-import { Position, SwappingCells, BoostersConfig, BoosterType, Match } from "../types";
+import { Position, SwappingCells, BoostersState, BoosterType, Match, Booster } from "../types";
 import { GRID_X_SIZE, GRID_Y_SIZE, JEWEL_IMAGES, ANIMATION_DURATION, BOOSTERS } from "../constants";
 import { initializeGrid, findMatches, findHint, generateGoldenCells } from "../utils/gameLogic";
-import { BoosterTypeEnum } from '@/types';
 
 export const useGameLogic = () => {
-  const [grid, setGrid] = useState<number[][]>([]);
+  const [grid, setGrid] = useState<(number | null)[][]>([]);
   const [goldenCells, setGoldenCells] = useState<Set<string>>(new Set());
   const [level, setLevel] = useState<number>(1);
   const [score, setScore] = useState<number>(0);
@@ -14,7 +13,7 @@ export const useGameLogic = () => {
   const [fallingCells, setFallingCells] = useState<Set<string>>(new Set());
   const [matchedCells, setMatchedCells] = useState<Set<string>>(new Set());
   const [highlightedCells, setHighlightedCells] = useState<Set<string>>(new Set());
-  const [boosters, setBoosters] = useState<BoostersConfig>(BOOSTERS);
+  const [boosters, setBoosters] = useState<BoostersState>(BOOSTERS);
   const [activeBooster, setActiveBooster] = useState<BoosterType | null>(null);
   const [boosterNotification, setBoosterNotification] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -65,10 +64,10 @@ export const useGameLogic = () => {
   }, [boosters]);
 
   const removeMatches = async (
-    grid: number[][], 
+    grid: (number | null)[][], 
     matches: Match[], 
     matchedPositions: Set<string>
-  ): Promise<number[][]> => {
+  ): Promise<(number | null)[][]> => {
     await animateMatches(matchedPositions);
 
     const newGrid = grid.map(row => [...row]);
@@ -159,7 +158,7 @@ export const useGameLogic = () => {
     });
   };
 
-  const checkCascadingMatches = async (currentGrid: number[][]): Promise<void> => {
+  const checkCascadingMatches = async (currentGrid: (number | null)[][]): Promise<void> => {
     const { matches, matchedPositions } = findMatches(currentGrid);
     if (matches.length > 0) {
       const updatedGrid = await removeMatches(currentGrid, matches, matchedPositions);
@@ -175,28 +174,110 @@ export const useGameLogic = () => {
     }
   };
 
-  const canUseBooster = (type: BoosterTypeEnum): boolean => {
+  const canUseBooster = (booster: Booster): boolean => {
     if (isAnimating || isProcessing) return false;
-    if (type === BoosterTypeEnum.LINE_CLEAR) return selectedCell !== null;
-    if (type === BoosterTypeEnum.COLOR_BOMB) return selectedCell !== null;
-    if (type === BoosterTypeEnum.SHUFFLE) return true;
-    return false;
+    if (booster.count === 0) return false;
+    return true;
+  };
+
+  const useBooster = (booster: Booster, position: Position) => {
+    if (!canUseBooster(booster)) return;
+
+    setIsProcessing(true);
+    const newGrid = [...grid];
+    const cellsToHighlight = new Set<string>();
+
+    switch (booster.type) {
+      case BoosterType.HAMMER:
+        newGrid[position.row][position.col] = null;
+        cellsToHighlight.add(`${position.row},${position.col}`);
+        setBoosters((prev: BoostersState) => ({
+          ...prev,
+          [BoosterType.HAMMER]: {
+            ...prev[BoosterType.HAMMER],
+            count: prev[BoosterType.HAMMER].count - 1
+          }
+        }));
+        break;
+
+      case BoosterType.BOMB:
+        const { row, col } = position;
+        for (let i = -1; i <= 1; i++) {
+          for (let j = -1; j <= 1; j++) {
+            const newRow = row + i;
+            const newCol = col + j;
+            if (newRow >= 0 && newRow < GRID_Y_SIZE && newCol >= 0 && newCol < GRID_X_SIZE) {
+              newGrid[newRow][newCol] = null;
+              cellsToHighlight.add(`${newRow},${newCol}`);
+            }
+          }
+        }
+        setBoosters((prev: BoostersState) => ({
+          ...prev,
+          [BoosterType.BOMB]: {
+            ...prev[BoosterType.BOMB],
+            count: prev[BoosterType.BOMB].count - 1
+          }
+        }));
+        break;
+
+      case BoosterType.LASER:
+        const { row: laserRow, col: laserCol } = position;
+        const isOnEdge = laserRow === 0 || laserRow === GRID_Y_SIZE - 1 || laserCol === 0 || laserCol === GRID_X_SIZE - 1;
+        
+        if (isOnEdge) {
+          // Horizontal
+          for (let i = 0; i < GRID_X_SIZE; i++) {
+            newGrid[laserRow][i] = null;
+            cellsToHighlight.add(`${laserRow},${i}`);
+          }
+          // Vertical
+          for (let i = 0; i < GRID_Y_SIZE; i++) {
+            newGrid[i][laserCol] = null;
+            cellsToHighlight.add(`${i},${laserCol}`);
+          }
+        } else {
+          // Horizontal
+          for (let i = 0; i < GRID_X_SIZE; i++) {
+            newGrid[laserRow][i] = null;
+            cellsToHighlight.add(`${laserRow},${i}`);
+          }
+        }
+        
+        setBoosters((prev: BoostersState) => ({
+          ...prev,
+          [BoosterType.LASER]: {
+            ...prev[BoosterType.LASER],
+            count: prev[BoosterType.LASER].count - 1
+          }
+        }));
+        break;
+    }
+
+    setHighlightedCells(cellsToHighlight);
+    setTimeout(() => setHighlightedCells(new Set()), 500);
+
+    setGrid(newGrid);
+    applyGravity();
+    setActiveBooster(null);
+    setIsProcessing(false);
+    checkCascadingMatches(newGrid);
   };
 
   const applyGravity = useCallback(() => {
     const newGrid = [...grid];
     for (let col = 0; col < GRID_X_SIZE; col++) {
+      let emptySpots = 0;
       for (let row = GRID_Y_SIZE - 1; row >= 0; row--) {
         if (newGrid[row][col] === null) {
-          let sourceRow = row - 1;
-          while (sourceRow >= 0 && newGrid[sourceRow][col] === null) {
-            sourceRow--;
-          }
-          if (sourceRow >= 0) {
-            newGrid[row][col] = newGrid[sourceRow][col];
-            newGrid[sourceRow][col] = null as any;
-          }
+          emptySpots++;
+        } else if (emptySpots > 0) {
+          newGrid[row + emptySpots][col] = newGrid[row][col];
+          newGrid[row][col] = null;
         }
+      }
+      for (let row = 0; row < emptySpots; row++) {
+        newGrid[row][col] = Math.floor(Math.random() * JEWEL_IMAGES.length);
       }
     }
     setGrid(newGrid);
@@ -237,6 +318,7 @@ export const useGameLogic = () => {
     checkCascadingMatches,
     giveRandomBooster,
     canUseBooster,
+    useBooster,
     applyGravity
   };
 }; 
