@@ -1,103 +1,179 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect } from "react";
+import { useGameLogic } from "../hooks/useGameLogic";
+import { useAnimations } from "../hooks/useAnimations";
+import { findHint, findMatches } from "../utils/gameLogic";
+import { GRID_X_SIZE, GRID_Y_SIZE } from "../constants";
+import { BoosterType, BoosterTypeEnum } from "../types";
+import { BoosterButton } from "@/components/BoosterButton";
+import { JewelCell } from "@/components/JewelCell";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const {
+    grid,
+    goldenCells,
+    level,
+    score,
+    selectedCell,
+    swappingCells,
+    fallingCells,
+    matchedCells,
+    boosters,
+    activeBooster,
+    boosterNotification,
+    setGrid,
+    setSelectedCell,
+    setBoosters,
+    setActiveBooster,
+    initializeGame,
+    animateSwap,
+    removeMatches,
+    checkCascadingMatches,
+  } = useGameLogic();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const { hintCells, showHint } = useAnimations();
+
+  useEffect(() => {
+    initializeGame();
+  }, [initializeGame]);
+
+  const handleCellClick = async (row: number, col: number) => {
+    if (activeBooster) {
+      const booster = boosters[activeBooster];
+      if (booster.count > 0) {
+        setBoosters(prev => ({
+          ...prev,
+          [activeBooster]: {
+            ...prev[activeBooster],
+            count: prev[activeBooster].count - 1
+          }
+        }));
+
+        if (activeBooster === "HAMMER") {
+          const hint = findHint(grid);
+          if (hint) {
+            showHint([hint.from, hint.to]);
+          }
+        } else if (activeBooster === "BOMB") {
+          const newGrid = grid.map(row => [...row]);
+          for (let i = 0; i < GRID_X_SIZE; i++) {
+            for (let j = 0; j < GRID_Y_SIZE; j++) {
+              newGrid[i][j] = Math.floor(Math.random() * 6);
+            }
+          }
+          setGrid(newGrid);
+        }
+        setActiveBooster(null);
+      }
+      return;
+    }
+
+    if (selectedCell) {
+      if (
+        (Math.abs(selectedCell.row - row) === 1 && selectedCell.col === col) ||
+        (Math.abs(selectedCell.col - col) === 1 && selectedCell.row === row)
+      ) {
+        const newGrid = grid.map(row => [...row]);
+        const temp = newGrid[selectedCell.row][selectedCell.col];
+        newGrid[selectedCell.row][selectedCell.col] = newGrid[row][col];
+        newGrid[row][col] = temp;
+
+        await animateSwap(selectedCell, { row, col });
+        setGrid(newGrid);
+
+        const { matches, matchedPositions } = findMatches(newGrid);
+        if (matches.length > 0) {
+          const updatedGrid = await removeMatches(newGrid, matches, matchedPositions);
+          setGrid(updatedGrid);
+          checkCascadingMatches(updatedGrid);
+        } else {
+          const revertGrid = grid.map(row => [...row]);
+          setGrid(revertGrid);
+          await animateSwap({ row, col }, selectedCell);
+        }
+      }
+      setSelectedCell(null);
+    } else {
+      setSelectedCell({ row, col });
+    }
+  };
+
+  const handleHintClick = () => {
+    const hint = findHint(grid);
+    if (hint) showHint([hint.from, hint.to]);
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b bg-[#1a1a1a] from-[#0d0d0d] to-[#1a1a1a] text-white p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-white">
+            <h1 className="text-3xl font-bold mb-2">Bejeweled</h1>
+            <div className="flex gap-4 items-center">
+              <div>
+                <span className="text-yellow-300">Score: </span>
+                <span className="text-xl">{score}</span>
+              </div>
+              <div>
+                <span className="text-yellow-300">Level: </span>
+                <span className="text-xl">{level}</span>
+              </div>
+
+              <button
+                onClick={handleHintClick}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              >
+                Indice
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {Object.entries(boosters).map(([type, booster]) => (
+              <BoosterButton
+                key={type}
+                count={booster.count}
+                type={type as BoosterTypeEnum}
+                isActive={activeBooster === type}
+                onClick={() => setActiveBooster(type as BoosterType)}
+                disabled={false}
+              />
+            ))}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {boosterNotification && (
+          <div className="bg-yellow-500/10 text-black p-3 rounded-lg mb-4">
+            <p className="text-lg font-semibold">
+              {boosterNotification} obtenu !
+            </p>
+          </div>
+        )}
+
+        <div className="grid gap-1" style={{ 
+          gridTemplateColumns: `repeat(${GRID_X_SIZE}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${GRID_Y_SIZE}, minmax(0, 1fr))`
+        }}>
+          {grid.map((row, i) => (
+            row.map((cell, j) => (
+              <JewelCell
+                key={`${i}-${j}`}
+                jewel={cell}
+                row={i}
+                col={j}
+                isSelected={selectedCell?.row === i && selectedCell?.col === j}
+                isHighlighted={hintCells.has(`${i},${j}`)}
+                isGolden={goldenCells.has(`${i},${j}`)}
+                onClick={() => handleCellClick(i, j)}
+                isSwapping={swappingCells?.from.row === i && swappingCells?.from.col === j ? swappingCells.from : 
+                           swappingCells?.to.row === i && swappingCells?.to.col === j ? swappingCells.to : null}
+                isFalling={fallingCells.has(`${i},${j}`)}
+                isMatched={matchedCells.has(`${i},${j}`)}
+              />
+            ))
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }
