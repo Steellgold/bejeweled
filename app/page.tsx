@@ -132,11 +132,10 @@ export default function Home() {
             {Object.entries(boosters).map(([type, booster]) => (
               <BoosterButton
                 key={type}
+                isActive={activeBooster === type}
                 count={booster.count}
                 type={type as BoosterTypeEnum}
-                isActive={activeBooster === type}
                 onClick={() => setActiveBooster(type as BoosterType)}
-                disabled={false}
               />
             ))}
           </div>
