@@ -1,5 +1,4 @@
-import { BoostersConfig } from "../types";
-import { BoosterTypeEnum } from '@/types';
+import { BoostersState, BoosterType } from "../types";
 
 export const GRID_Y_SIZE = 8;
 export const GRID_X_SIZE = 8;
@@ -17,14 +16,32 @@ export const JEWEL_IMAGES: string[] = [
   "/assets/gems/gem_13.png" // Crystal
 ];
 
-export const BOOSTERS: BoostersConfig = {
-  HAMMER: { name: "Hammer", src: "/assets/boosters/hammer.png", count: 0 },
-  BOMB: { name: "Bomb", src: "/assets/boosters/bomb.png", count: 0 },
-  LASER: { name: "Laser", src: "/assets/boosters/laser.png", count: 0 }
+export const BOOSTERS: BoostersState = {
+  [BoosterType.HAMMER]: {
+    type: BoosterType.HAMMER,
+    name: "Hammer",
+    description: "Détruit une cellule",
+    count: 0,
+    requiresSelection: true
+  },
+  [BoosterType.BOMB]: {
+    type: BoosterType.BOMB,
+    name: "Bomb",
+    description: "Détruit une zone 3x3",
+    count: 0,
+    requiresSelection: true
+  },
+  [BoosterType.LASER]: {
+    type: BoosterType.LASER,
+    name: "Laser",
+    description: "Détruit une ligne entière",
+    count: 0,
+    requiresSelection: true
+  }
 };
 
-export const BOOSTER_COLORS: Record<BoosterTypeEnum, string> = {
-  [BoosterTypeEnum.LINE_CLEAR]: 'bg-blue-500 hover:bg-blue-600',
-  [BoosterTypeEnum.COLOR_BOMB]: 'bg-purple-500 hover:bg-purple-600',
-  [BoosterTypeEnum.SHUFFLE]: 'bg-green-500 hover:bg-green-600',
+export const BOOSTER_COLORS: Record<BoosterType, string> = {
+  [BoosterType.HAMMER]: 'bg-yellow-500 hover:bg-yellow-600',
+  [BoosterType.BOMB]: 'bg-red-500 hover:bg-red-600',
+  [BoosterType.LASER]: 'bg-blue-500 hover:bg-blue-600'
 } as const; 

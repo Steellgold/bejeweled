@@ -5,7 +5,7 @@ import { useGameLogic } from "../hooks/useGameLogic";
 import { useAnimations } from "../hooks/useAnimations";
 import { findHint, findMatches } from "../utils/gameLogic";
 import { GRID_X_SIZE, GRID_Y_SIZE } from "../constants";
-import { BoosterType, BoosterTypeEnum } from "../types";
+import { BoosterType } from "../types";
 import { BoosterButton } from "@/components/BoosterButton";
 import { JewelCell } from "@/components/JewelCell";
 
@@ -30,6 +30,8 @@ export default function Home() {
     animateSwap,
     removeMatches,
     checkCascadingMatches,
+    useBooster,
+    canUseBooster
   } = useGameLogic();
 
   const { hintCells, showHint } = useAnimations();
@@ -41,30 +43,8 @@ export default function Home() {
   const handleCellClick = async (row: number, col: number) => {
     if (activeBooster) {
       const booster = boosters[activeBooster];
-      if (booster.count > 0) {
-        setBoosters(prev => ({
-          ...prev,
-          [activeBooster]: {
-            ...prev[activeBooster],
-            count: prev[activeBooster].count - 1
-          }
-        }));
-
-        if (activeBooster === "HAMMER") {
-          const hint = findHint(grid);
-          if (hint) {
-            showHint([hint.from, hint.to]);
-          }
-        } else if (activeBooster === "BOMB") {
-          const newGrid = grid.map(row => [...row]);
-          for (let i = 0; i < GRID_X_SIZE; i++) {
-            for (let j = 0; j < GRID_Y_SIZE; j++) {
-              newGrid[i][j] = Math.floor(Math.random() * 6);
-            }
-          }
-          setGrid(newGrid);
-        }
-        setActiveBooster(null);
+      if (canUseBooster(booster)) {
+        useBooster(booster, { row, col });
       }
       return;
     }
@@ -132,10 +112,10 @@ export default function Home() {
             {Object.entries(boosters).map(([type, booster]) => (
               <BoosterButton
                 key={type}
+                booster={booster}
                 isActive={activeBooster === type}
-                count={booster.count}
-                type={type as BoosterTypeEnum}
                 onClick={() => setActiveBooster(type as BoosterType)}
+                disabled={!canUseBooster(booster)}
               />
             ))}
           </div>
