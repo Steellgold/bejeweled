@@ -39,9 +39,3 @@ export const BOOSTERS: BoostersState = {
     requiresSelection: true
   }
 };
-
-export const BOOSTER_COLORS: Record<BoosterType, string> = {
-  [BoosterType.HAMMER]: 'bg-yellow-500 hover:bg-yellow-600',
-  [BoosterType.BOMB]: 'bg-red-500 hover:bg-red-600',
-  [BoosterType.LASER]: 'bg-blue-500 hover:bg-blue-600'
-} as const; 

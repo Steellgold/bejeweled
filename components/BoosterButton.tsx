@@ -1,6 +1,5 @@
 import React from "react";
 import { Booster } from '@/types';
-import { BOOSTER_COLORS } from '@/constants';
 import Image from 'next/image';
 
 interface BoosterButtonProps {
@@ -20,9 +19,10 @@ export const BoosterButton = ({ booster, isActive, onClick, disabled }: BoosterB
         relative flex flex-col items-center justify-center
         w-16 h-16 rounded-xl
         transition-all duration-200
-        ${isActive ? 'scale-110 shadow-lg' : 'hover:scale-105'}
         ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        ${BOOSTER_COLORS[booster.type]}
+        ${isActive
+            ? 'bg-[#2E2E2E] hover:bg-[#2E2E2E]/80'
+            : 'bg-[#1E1E1E]/30 hover:bg-[#1E1E1E]/50'}
       `}
       title={booster.description}
     >
@@ -36,7 +36,6 @@ export const BoosterButton = ({ booster, isActive, onClick, disabled }: BoosterB
       </div>
 
       <span className="text-white text-sm font-bold">{booster.count}</span>
-      {isActive && <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white rounded-full" />}
     </button>
   );
 }; 

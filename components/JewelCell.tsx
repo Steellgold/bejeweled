@@ -12,9 +12,11 @@ export const JewelCell: React.FC<JewelCellProps> = ({
   isFalling,
   isMatched,
   isHighlighted,
-  isGolden
+  isGolden,
+  fallDistance
 }) => {
   const [animationClass, setAnimationClass] = useState<string>("");
+  const [fallAnim, setFallAnim] = useState(false);
 
   useEffect(() => {
     if (isFalling) {
@@ -23,6 +25,14 @@ export const JewelCell: React.FC<JewelCellProps> = ({
       return () => clearTimeout(timer);
     }
   }, [isFalling]);
+
+  useEffect(() => {
+    if (fallDistance > 0) {
+      setFallAnim(true);
+      const timer = setTimeout(() => setFallAnim(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [fallDistance]);
 
   return (
     <button
@@ -39,7 +49,8 @@ export const JewelCell: React.FC<JewelCellProps> = ({
         ${animationClass}
       `}
       style={{
-        transform: isSwapping ? isSwapping.transform : undefined,
+        transform: fallAnim ? `translateY(${fallDistance * 100}%)` : undefined,
+        transition: fallAnim ? 'transform 0.3s cubic-bezier(.4,2,.6,1)' : undefined,
         zIndex: isSwapping ? 10 : 1,
       }}
     >

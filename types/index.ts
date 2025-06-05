@@ -62,6 +62,7 @@ export interface JewelCellProps {
   isMatched: boolean;
   isHighlighted: boolean;
   isGolden: boolean;
+  fallDistance: number;
 }
 
 export interface BoosterButtonProps {

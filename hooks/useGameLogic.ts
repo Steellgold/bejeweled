@@ -18,6 +18,7 @@ export const useGameLogic = () => {
   const [boosterNotification, setBoosterNotification] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fallingMap, setFallingMap] = useState<{ [key: string]: number }>({});
 
   const initializeGame = useCallback(() => {
     const newGrid = initializeGrid();
@@ -266,6 +267,8 @@ export const useGameLogic = () => {
 
   const applyGravity = useCallback(() => {
     const newGrid = [...grid];
+    const newFallingMap: { [key: string]: number } = {};
+
     for (let col = 0; col < GRID_X_SIZE; col++) {
       let emptySpots = 0;
       for (let row = GRID_Y_SIZE - 1; row >= 0; row--) {
@@ -274,13 +277,18 @@ export const useGameLogic = () => {
         } else if (emptySpots > 0) {
           newGrid[row + emptySpots][col] = newGrid[row][col];
           newGrid[row][col] = null;
+          newFallingMap[`${row + emptySpots},${col}`] = emptySpots;
         }
       }
       for (let row = 0; row < emptySpots; row++) {
         newGrid[row][col] = Math.floor(Math.random() * JEWEL_IMAGES.length);
+        newFallingMap[`${row},${col}`] = emptySpots - row;
       }
     }
+
     setGrid(newGrid);
+    setFallingMap(newFallingMap);
+    setTimeout(() => setFallingMap({}), 300);
   }, [grid]);
 
   return {
@@ -297,6 +305,7 @@ export const useGameLogic = () => {
     boosters,
     activeBooster,
     boosterNotification,
+    fallingMap,
     
     // Setters
     setGrid,

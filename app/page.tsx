@@ -31,7 +31,8 @@ export default function Home() {
     removeMatches,
     checkCascadingMatches,
     useBooster,
-    canUseBooster
+    canUseBooster,
+    fallingMap
   } = useGameLogic();
 
   const { hintCells, showHint } = useAnimations();
@@ -114,7 +115,10 @@ export default function Home() {
                 key={type}
                 booster={booster}
                 isActive={activeBooster === type}
-                onClick={() => setActiveBooster(type as BoosterType)}
+                onClick={() => {
+                  if (activeBooster === type) setActiveBooster(null);
+                  else setActiveBooster(type as BoosterType);
+                }}
                 disabled={!canUseBooster(booster)}
               />
             ))}
@@ -148,6 +152,7 @@ export default function Home() {
                            swappingCells?.to.row === i && swappingCells?.to.col === j ? swappingCells.to : null}
                 isFalling={fallingCells.has(`${i},${j}`)}
                 isMatched={matchedCells.has(`${i},${j}`)}
+                fallDistance={fallingMap && fallingMap[`${i},${j}`] ? fallingMap[`${i},${j}`] : 0}
               />
             ))
           ))}
