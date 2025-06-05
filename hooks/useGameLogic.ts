@@ -23,7 +23,16 @@ export const useGameLogic = () => {
   const initializeGame = useCallback(() => {
     const newGrid = initializeGrid();
     const newGoldenCells = generateGoldenCells();
-    setGrid(newGrid);
+
+    setGrid(
+      newGrid.map(
+        row => row.map(cell => cell === null
+          ? Math.floor(Math.random() * JEWEL_IMAGES.length)
+          : cell
+        )
+      )
+    );
+    
     setGoldenCells(newGoldenCells);
   }, []);
 
