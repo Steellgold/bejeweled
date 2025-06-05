@@ -33,7 +33,7 @@ export const JewelCell: React.FC<JewelCellProps> = ({
         bg-[#1E1E1E]/30 hover:bg-[#1E1E1E]/30
 
         ${isSelected ? "ring-1 ring-yellow300 shadow-yellow-300/30" : ""}
-        ${isHighlighted ? "ring-1 bg-red-500/20 ring-red-500" : ""}
+        ${isHighlighted ? "ring-1 bg-red-500/20 ring-red-500 animate-pulse" : ""}
         ${isSwapping ? "animate-swap right-0" : ""}
         ${isMatched ? "animate-match right-0" : ""}
         ${animationClass}
@@ -45,14 +45,20 @@ export const JewelCell: React.FC<JewelCellProps> = ({
     >
       {isGolden && <div className="absolute inset-0 bg-gradient-to-br from-yellow-300/20 to-yellow-500/10" />}
 
-      <img
-        src={JEWEL_IMAGES[jewel]}
-        alt={`Jewel ${jewel}`}
-        className={`w-9 h-9 object-cover z-10 ${isGolden ? "drop-shadow-md" : ""}`}
-        style={{
-          filter: isGolden ? "brightness(1.1) drop-shadow(0 0 4px gold)" : "none"
-        }}
-      />
+      {jewel !== null ? (
+        <img
+          src={JEWEL_IMAGES[jewel]}
+          alt={`Jewel ${jewel}`}
+          className={`w-9 h-9 object-cover z-10 ${isGolden ? "drop-shadow-md" : ""}`}
+          style={{
+            filter: isGolden ? "brightness(1.1) drop-shadow(0 0 4px gold)" : "none"
+          }}
+        />
+      ) : (
+        <>
+          {JSON.stringify(jewel)}
+        </>
+      )}
     </button>
   );
 };

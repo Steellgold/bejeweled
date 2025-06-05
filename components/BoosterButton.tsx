@@ -1,43 +1,41 @@
 import React from "react";
-import { BoosterTypeEnum } from '@/types';
+import { Booster } from '@/types';
 import { BOOSTER_COLORS } from '@/constants';
-import { useGameLogic } from '@/hooks/useGameLogic';
 import Image from 'next/image';
 
 interface BoosterButtonProps {
-  type: BoosterTypeEnum;
-  count: number;
+  booster: Booster;
   isActive: boolean;
   onClick: () => void;
-  disabled?: boolean;
+  disabled: boolean;
 }
 
-export const BoosterButton = ({ type, count, isActive, onClick, disabled }: BoosterButtonProps) => {
-  const { canUseBooster } = useGameLogic();
-  const isDisabled = count === 0 || !canUseBooster(type) || disabled;
+export const BoosterButton = ({ booster, isActive, onClick, disabled }: BoosterButtonProps) => {
+  const isButtonDisabled = booster.count === 0 || disabled;
 
   return (
     <button
-      onClick={isDisabled ? undefined : onClick}
+      onClick={isButtonDisabled ? undefined : onClick}
       className={`
         relative flex flex-col items-center justify-center
         w-16 h-16 rounded-xl
         transition-all duration-200
         ${isActive ? 'scale-110 shadow-lg' : 'hover:scale-105'}
-        ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        ${BOOSTER_COLORS[type]}
+        ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+        ${BOOSTER_COLORS[booster.type]}
       `}
+      title={booster.description}
     >
       <div className="relative w-8 h-8 mb-1">
         <Image
-          src={`/assets/boosters/${type.toLowerCase()}.png`}
-          alt={`${type} booster`}
+          src={`/assets/boosters/${booster.type.toLowerCase()}.png`}
+          alt={`${booster.name} booster`}
           fill
           className="object-contain"
         />
       </div>
 
-      <span className="text-white text-sm font-bold">{count}</span>
+      <span className="text-white text-sm font-bold">{booster.count}</span>
       {isActive && <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-white rounded-full" />}
     </button>
   );
