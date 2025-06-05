@@ -18,7 +18,7 @@ export const BoosterButton = ({ type, count, isActive, onClick, disabled }: Boos
 
   return (
     <button
-      onClick={onClick}
+      onClick={isDisabled ? undefined : onClick}
       className={`
         relative flex flex-col items-center justify-center
         w-16 h-16 rounded-xl
